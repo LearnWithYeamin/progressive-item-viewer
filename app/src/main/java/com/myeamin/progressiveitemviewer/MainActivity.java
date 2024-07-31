@@ -109,6 +109,10 @@ public class MainActivity extends AppCompatActivity {
             lastIndex = 0; // Reset to the beginning
         }
 
+        if ((totalItemCount - lastIndex) < limit) {
+            limit = totalItemCount - lastIndex;
+        }
+        
         arrayList = dbHelper.getItems(lastIndex, limit);
         adapter = new ItemAdapter(arrayList);
         adapter.notifyDataSetChanged();
