@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -20,6 +21,8 @@ public class MainActivity extends AppCompatActivity {
     private ItemAdapter adapter;
     private ArrayList<HashMap<String, String>> arrayList;
     private DatabaseHelper dbHelper;
+    private SharedPreferences sharedPreferences;
+    private SharedPreferences.Editor editor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,8 +32,17 @@ public class MainActivity extends AppCompatActivity {
         dbHelper = new DatabaseHelper(this);
         recyclerView = findViewById(R.id.recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        sharedPreferences = getSharedPreferences(getString(R.string.app_name), MODE_PRIVATE);
+        editor = sharedPreferences.edit();
 
-        insertItems();
+        boolean isFirstLaunch = sharedPreferences.getBoolean("FIRST_LAUNCH", true);
+        if (isFirstLaunch) {
+            insertItems(); // Insert data if this is the first launch
+
+            // Update SharedPreferences to mark that the initial data has been inserted
+            editor.putBoolean("FIRST_LAUNCH", false);
+            editor.apply();
+        }
         loadItems();
 
 
@@ -85,19 +97,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadItems() {
-        SharedPreferences sharedPreferences = getSharedPreferences(getString(R.string.app_name), MODE_PRIVATE);
+
         int lastIndex = sharedPreferences.getInt("KEY_LAST_INDEX", 0); // Get last index from SharedPreferences
         int limit = 10; // Number of items to load
+
+        // Calculate total item count
+        int totalItemCount = dbHelper.getTotalItemCount();
+
+        // Check if lastIndex exceeds total item count and reset it if necessary
+        if (lastIndex >= totalItemCount) {
+            lastIndex = 0; // Reset to the beginning
+        }
+
         arrayList = dbHelper.getItems(lastIndex, limit);
         adapter = new ItemAdapter(arrayList);
         adapter.notifyDataSetChanged();
         recyclerView.setAdapter(adapter);
 
         // Update lastIndex for the next load
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putInt("KEY_LAST_INDEX", lastIndex + limit);
+        editor.putInt("KEY_LAST_INDEX", (lastIndex + limit) % totalItemCount); // Use modulo to wrap around
         editor.apply();
     }
+
 
     public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ViewHolder> {
         private ArrayList<HashMap<String, String>> arrayList;

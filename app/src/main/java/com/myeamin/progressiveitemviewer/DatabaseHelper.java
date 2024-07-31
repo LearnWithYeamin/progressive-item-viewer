@@ -52,8 +52,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public ArrayList<HashMap<String, String>> getItems(int lastIndex, int limit) {
         ArrayList<HashMap<String, String>> arrayList = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
-        // Corrected query to use lastIndex and limit
-        Cursor cursor = db.query(TABLE_NAME, new String[]{COLUMN_ID, COLUMN_TEXT1, COLUMN_TEXT2}, null, null, null, null, null, lastIndex + "," + limit);
+
+        // Define the query with LIMIT and OFFSET
+        String query = "SELECT * FROM " + TABLE_NAME +
+                " LIMIT ? OFFSET ?";
+
+        // Use rawQuery with the LIMIT and OFFSET parameters
+        Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(limit), String.valueOf(lastIndex)});
 
         if (cursor.moveToFirst()) {
             do {
@@ -66,6 +71,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
         cursor.close();
         return arrayList;
+    }
+    public int getTotalItemCount() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String countQuery = "SELECT COUNT(*) FROM " + TABLE_NAME;
+        Cursor cursor = db.rawQuery(countQuery, null);
+        cursor.moveToFirst();
+        int count = cursor.getInt(0);
+        cursor.close();
+        return count;
     }
 
 }
